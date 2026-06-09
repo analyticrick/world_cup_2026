@@ -1,10 +1,7 @@
 import os
 import pandas as pd
 
-DEFAULT_SHEET_ID = os.environ.get(
-    'WORLD_CUP_SHEET_ID',
-    '110V6txY9pnkPZwS2ZX0FJMvrBP2KuqPU475dmfr2uyA',
-)
+DEFAULT_SHEET_ID = os.environ.get('WORLD_CUP_SHEET_ID') or '110V6txY9pnkPZwS2ZX0FJMvrBP2KuqPU475dmfr2uyA'
 
 FLAG_MAP = {
     'Mexico': '🇲🇽',
