@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 DEFAULT_SHEET_ID = os.environ.get('WORLD_CUP_SHEET_ID') or '110V6txY9pnkPZwS2ZX0FJMvrBP2KuqPU475dmfr2uyA'
 
@@ -162,8 +163,8 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
     player_html = player_report.to_html(index=False, escape=False, classes='report-table player-table')
     country_html = country_report.to_html(index=False, escape=False, classes='report-table country-table')
 
-    # timestamp for when this report was generated (UTC)
-    timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')
+    # timestamp for when this report was generated (North American Eastern Time)
+    timestamp = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M %Z')
 
     html = f"""
 <html>
