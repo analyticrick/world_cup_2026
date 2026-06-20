@@ -105,12 +105,41 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
         remaining_label = '<span class="pick-group-label tooltip" data-tooltip="Remaining countries">✅</span>'
         eliminated_label = '<span class="pick-group-label tooltip" data-tooltip="Eliminated countries">❌</span>'
 
+        # Collect tuples (pot, group, html_flag) so we can sort picks by Pot then Group
+        remaining_tuples = []
+        eliminated_tuples = []
+
+        for country in picks:
+            tooltip_flag = flag_with_tooltip(country)
+            row = countries_df.loc[countries_df['Country'] == country]
+            if not row.empty:
+                pot_raw = row['Pot'].iloc[0]
+                try:
+                    pot_key = int(pot_raw)
+                except Exception:
+                    pot_key = 999
+                group_key = row['Group'].iloc[0] if pd.notna(row['Group'].iloc[0]) else ''
+            else:
+                pot_key = 999
+                group_key = ''
+
+            if row['alive'].any() if not row.empty else False:
+                remaining_tuples.append((pot_key, group_key, tooltip_flag))
+            else:
+                eliminated_tuples.append((pot_key, group_key, tooltip_flag))
+
+        # sort by pot (ascending), then group (ascending)
+        remaining_tuples.sort(key=lambda t: (t[0], t[1]))
+        eliminated_tuples.sort(key=lambda t: (t[0], t[1]))
+
+        remaining_flags = [t[2] for t in remaining_tuples]
+        eliminated_flags = [t[2] for t in eliminated_tuples]
+
         # Build picks with remaining on the first line and eliminated on the second (if present)
         picks_lines = []
         if remaining_flags:
             picks_lines.append(f"{remaining_label} {' '.join(remaining_flags)}")
         if eliminated_flags:
-            # only show eliminated label/flags if any eliminated teams exist
             picks_lines.append(f"{eliminated_label} {' '.join(eliminated_flags)}")
 
         # join with a line break so the two groups appear on separate lines in the table cell
