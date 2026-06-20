@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 DEFAULT_SHEET_ID = os.environ.get('WORLD_CUP_SHEET_ID') or '110V6txY9pnkPZwS2ZX0FJMvrBP2KuqPU475dmfr2uyA'
 
@@ -102,12 +104,17 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
 
         remaining_label = '<span class="pick-group-label tooltip" data-tooltip="Remaining countries">✅</span>'
         eliminated_label = '<span class="pick-group-label tooltip" data-tooltip="Eliminated countries">❌</span>'
-        pick_parts = []
+
+        # Build picks with remaining on the first line and eliminated on the second (if present)
+        picks_lines = []
         if remaining_flags:
-            pick_parts.append(f"{remaining_label} {' '.join(remaining_flags)}")
+            picks_lines.append(f"{remaining_label} {' '.join(remaining_flags)}")
         if eliminated_flags:
-            pick_parts.append(f"{eliminated_label} {' '.join(eliminated_flags)}")
-        picks = ' '.join(pick_parts)
+            # only show eliminated label/flags if any eliminated teams exist
+            picks_lines.append(f"{eliminated_label} {' '.join(eliminated_flags)}")
+
+        # join with a line break so the two groups appear on separate lines in the table cell
+        picks = '<br/>'.join(picks_lines)
 
         player_rows.append({
             'Player': player,
@@ -130,7 +137,12 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
         columns={'Country': 'Country', 'Group': 'Group', 'Pot': 'Pot', 'total_points': 'Total points'}
     )
 
-    country_report = country_report.sort_values(by='Total points', ascending=False, na_position='last')
+    # Sort by Total points (desc), then Group (asc), then Pot (asc) for tie-breaking
+    country_report = country_report.sort_values(
+        by=['Total points', 'Group', 'Pot'],
+        ascending=[False, True, True],
+        na_position='last'
+    )
 
     country_report['Country'] = country_report['Country'].apply(
         lambda name: f"{FLAG_MAP.get(name, '')} {name}" if pd.notna(name) else name
@@ -155,6 +167,9 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
 
     player_html = player_report.to_html(index=False, escape=False, classes='report-table player-table')
     country_html = country_report.to_html(index=False, escape=False, classes='report-table country-table')
+
+    # timestamp for when this report was generated (North American Eastern Time)
+    timestamp = datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M %Z')
 
     html = f"""
 <html>
@@ -213,7 +228,8 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
     .player-table th:nth-child(2), .player-table td:nth-child(2) {{ min-width: 240px; }}
     .player-table th:nth-child(3), .player-table td:nth-child(3) {{ width: 120px; }}
     .player-table th:nth-child(4), .player-table td:nth-child(4) {{ width: 120px; }}
-    </style>
+        .updated {{ font-size: 0.9em; color: #666; margin-top: 12px; }}
+        </style>
 </head>
 <body>
   <h1>World Cup Pool Standings</h1>
@@ -221,6 +237,7 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
   {player_html}
   <h2>Country points</h2>
   {country_html}
+    <div class="updated">Last updated: {timestamp}</div>
 </body>
 </html>
 """
