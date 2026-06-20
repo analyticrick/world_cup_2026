@@ -137,7 +137,12 @@ def generate_report_html(sheet_id: str = DEFAULT_SHEET_ID) -> str:
         columns={'Country': 'Country', 'Group': 'Group', 'Pot': 'Pot', 'total_points': 'Total points'}
     )
 
-    country_report = country_report.sort_values(by='Total points', ascending=False, na_position='last')
+    # Sort by Total points (desc), then Group (asc), then Pot (asc) for tie-breaking
+    country_report = country_report.sort_values(
+        by=['Total points', 'Group', 'Pot'],
+        ascending=[False, True, True],
+        na_position='last'
+    )
 
     country_report['Country'] = country_report['Country'].apply(
         lambda name: f"{FLAG_MAP.get(name, '')} {name}" if pd.notna(name) else name
